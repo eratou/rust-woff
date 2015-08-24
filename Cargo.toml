@@ -1,0 +1,21 @@
+[package]
+name = "rust-woff"
+version = "0.0.1"
+authors = ["Patrick Walton <pcwalton@mimiga.net>"]
+
+[lib]
+name = "woff"
+path = "lib.rs"
+
+[[bin]]
+name = "woffdec"
+path = "woffdec.rs"
+
+[[test]]
+name = "basic"
+path = "tests/basic.rs"
+
+[dependencies]
+byteorder = "*"
+flate2 = "*"
+
