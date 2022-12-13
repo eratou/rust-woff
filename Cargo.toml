@@ -16,6 +16,5 @@ name = "basic"
 path = "tests/basic.rs"
 
 [dependencies]
-byteorder = "*"
-flate2 = "*"
-
+byteorder = "1.4"
+flate2 = "0.2"
