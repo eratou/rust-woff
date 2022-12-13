@@ -65,7 +65,7 @@ struct OtfTableDirectoryEntry {
     orig_length: u32,
 }
 
-pub fn convert_woff_to_otf<R,W>(mut woff_reader: R, mut otf_writer: W) -> Result<(),()>
+pub fn convert_woff_to_otf<R,W>(mut woff_reader: &mut R, mut otf_writer: &mut W) -> Result<(),()>
                                 where R: Read + Seek, W: Write + Seek {
     fn strip_err<T,E>(result: Result<T,E>) -> Result<T,()> {
         result.map_err(|_| ())
