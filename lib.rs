@@ -86,29 +86,29 @@ pub fn convert_woff_to_otf<R,W>(mut woff_reader: &mut R, mut otf_writer: &mut W)
 
     // Read in headers.
     let woff_header = WoffHeader {
-        signature: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
-        flavor: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
-        length: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
-        num_tables: try!(strip_err(woff_reader.read_u16::<BigEndian>())),
-        reserved: try!(strip_err(woff_reader.read_u16::<BigEndian>())),
-        total_sfnt_size: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
-        major_version: try!(strip_err(woff_reader.read_u16::<BigEndian>())),
-        minor_version: try!(strip_err(woff_reader.read_u16::<BigEndian>())),
-        meta_offset: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
-        meta_length: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
-        meta_orig_length: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
-        priv_offset: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
-        priv_length: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
+        signature: strip_err(woff_reader.read_u32::<BigEndian>())?,
+        flavor: strip_err(woff_reader.read_u32::<BigEndian>())?,
+        length: strip_err(woff_reader.read_u32::<BigEndian>())?,
+        num_tables: strip_err(woff_reader.read_u16::<BigEndian>())?,
+        reserved: strip_err(woff_reader.read_u16::<BigEndian>())?,
+        total_sfnt_size: strip_err(woff_reader.read_u32::<BigEndian>())?,
+        major_version: strip_err(woff_reader.read_u16::<BigEndian>())?,
+        minor_version: strip_err(woff_reader.read_u16::<BigEndian>())?,
+        meta_offset: strip_err(woff_reader.read_u32::<BigEndian>())?,
+        meta_length: strip_err(woff_reader.read_u32::<BigEndian>())?,
+        meta_orig_length: strip_err(woff_reader.read_u32::<BigEndian>())?,
+        priv_offset: strip_err(woff_reader.read_u32::<BigEndian>())?,
+        priv_length: strip_err(woff_reader.read_u32::<BigEndian>())?,
     };
 
     let mut woff_table_directory_entries = Vec::with_capacity(woff_header.num_tables as usize);
     for _ in 0..woff_header.num_tables {
         woff_table_directory_entries.push(WoffTableDirectoryEntry {
-            tag: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
-            offset: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
-            comp_length: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
-            orig_length: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
-            orig_checksum: try!(strip_err(woff_reader.read_u32::<BigEndian>())),
+            tag: strip_err(woff_reader.read_u32::<BigEndian>())?,
+            offset: strip_err(woff_reader.read_u32::<BigEndian>())?,
+            comp_length: strip_err(woff_reader.read_u32::<BigEndian>())?,
+            orig_length: strip_err(woff_reader.read_u32::<BigEndian>())?,
+            orig_checksum: strip_err(woff_reader.read_u32::<BigEndian>())?,
         })
     }
 
@@ -131,7 +131,7 @@ pub fn convert_woff_to_otf<R,W>(mut woff_reader: &mut R, mut otf_writer: &mut W)
     otf_writer.write_u16::<BigEndian>(otf_header.range_shift).unwrap();
 
     let mut otf_table_directory_entries = Vec::new();
-    let mut otf_offset = try!(tell(&mut otf_writer)) as u32 +
+    let mut otf_offset = tell(&mut otf_writer)? as u32 +
         (mem::size_of::<OtfTableDirectoryEntry>() * woff_table_directory_entries.len()) as u32;
     for woff_table_directory_entry in &woff_table_directory_entries {
         let otf_table_directory_entry = OtfTableDirectoryEntry {
@@ -156,29 +156,29 @@ pub fn convert_woff_to_otf<R,W>(mut woff_reader: &mut R, mut otf_writer: &mut W)
     // Decompress data if necessary, and write it out.
     for (woff_table_directory_entry, otf_table_directory_entry) in
             woff_table_directory_entries.iter().zip(otf_table_directory_entries.iter()) {
-        debug_assert!(otf_table_directory_entry.offset as u64 == try!(tell(&mut otf_writer)));
-        try!(strip_err(woff_reader.seek(SeekFrom::Start(woff_table_directory_entry.offset as
-                                                        u64))));
+        debug_assert!(otf_table_directory_entry.offset as u64 == tell(&mut otf_writer)?);
+        strip_err(woff_reader.seek(SeekFrom::Start(woff_table_directory_entry.offset as
+                                                        u64)))?;
         if woff_table_directory_entry.comp_length != woff_table_directory_entry.orig_length {
             let mut decompressing_woff_reader =
                 (&mut woff_reader).zlib_decode()
                                   .take(woff_table_directory_entry.orig_length as u64);
-            try!(strip_err(io::copy(&mut decompressing_woff_reader, &mut otf_writer)));
+            strip_err(io::copy(&mut decompressing_woff_reader, &mut otf_writer))?;
         } else {
             let mut limited_woff_reader =
                 (&mut woff_reader).take(woff_table_directory_entry.orig_length as u64);
-            try!(strip_err(io::copy(&mut limited_woff_reader, &mut otf_writer)));
+            strip_err(io::copy(&mut limited_woff_reader, &mut otf_writer))?;
         };
-        try!(strip_err(woff_reader.seek(SeekFrom::Start((woff_table_directory_entry.offset +
+        strip_err(woff_reader.seek(SeekFrom::Start((woff_table_directory_entry.offset +
                                                          woff_table_directory_entry.comp_length)
-                                                        as u64))));
+                                                        as u64)))?;
 
         let otf_end_offset = otf_table_directory_entry.offset +
             woff_table_directory_entry.orig_length;
         if otf_end_offset % 4 != 0 {
             let padding = 4 - otf_end_offset % 4;
             for _ in 0..padding {
-                try!(strip_err(otf_writer.write_all(&[0])))
+                strip_err(otf_writer.write_all(&[0]))?
             }
         }
     }
