@@ -18,7 +18,6 @@ extern crate byteorder;
 extern crate flate2;
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use flate2::FlateReadExt;
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::mem;
 
@@ -161,7 +160,7 @@ pub fn convert_woff_to_otf<R,W>(mut woff_reader: &mut R, mut otf_writer: &mut W)
                                                         u64)))?;
         if woff_table_directory_entry.comp_length != woff_table_directory_entry.orig_length {
             let mut decompressing_woff_reader =
-                (&mut woff_reader).zlib_decode()
+                flate2::read::ZlibDecoder::new(&mut woff_reader)
                                   .take(woff_table_directory_entry.orig_length as u64);
             strip_err(io::copy(&mut decompressing_woff_reader, &mut otf_writer))?;
         } else {
